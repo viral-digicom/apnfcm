@@ -94,9 +94,9 @@ func SendIOS(deviceIds []string, iosNotificationModal models.IOSAPS) ([]Response
 	var err error
 	var apnClient *models.APNSClient
 	if deviceType == 1 {
-		apnClient, err = models.NewClient(true, "", "")
+		apnClient, err = models.NewClient(true, "")
 	} else if deviceType == 3 {
-		apnClient, err = models.NewClient(true, iosModal.privateKeyPath, "gateway.push.apple.com:2195")
+		apnClient, err = models.NewClient(true, iosModal.privateKeyPath)
 	} else {
 		return nil, errors.New("Please initialize ios private keys")
 	}

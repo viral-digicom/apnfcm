@@ -23,7 +23,7 @@ type APNSClient struct {
 	Logger     *log.Logger
 }
 
-func NewClient(isSanbox bool, rootPEM string, address string) (*APNSClient, error) {
+func NewClient(isSanbox bool, rootPEM string) (*APNSClient, error) {
 	var urlString string
 	if isSanbox {
 		urlString = devAppleHost
