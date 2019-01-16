@@ -1,11 +1,11 @@
 package apnfcm
 
 import (
-	"apnfcm/jwt"
-	"apnfcm/models"
 	"encoding/json"
 	"fmt"
 	"github.com/kataras/go-errors"
+	"github.com/viral-digicom/apnfcm/jwt"
+	"github.com/viral-digicom/apnfcm/models"
 	"io/ioutil"
 	"net/http"
 )
