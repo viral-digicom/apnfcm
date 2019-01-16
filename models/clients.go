@@ -1,14 +1,16 @@
 package models
 
 import (
-	"fmt"
-	"log"
-	"os"
 	"bytes"
-	"net/http"
+	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"golang.org/x/net/http2"
+	"log"
+	"net/http"
+	"os"
 )
+
 const (
 	androidDevHost      = "https://fcm.googleapis.com/fcm/send"
 	devAppleHost        = "https://api.development.push.apple.com:443"
@@ -21,20 +23,38 @@ type APNSClient struct {
 	Logger     *log.Logger
 }
 
-func NewClient(isSanbox bool) (*APNSClient, error) {
+func NewClient(isSanbox bool, rootPEM string, address string) (*APNSClient, error) {
 	var urlString string
 	if isSanbox {
 		urlString = devAppleHost
 	} else {
 		urlString = productionAppleHost
 	}
-	tr := &http.Transport{}
-	err := http2.ConfigureTransport(tr)
+	var client *http.Client
+	var tr *http.Transport
+	var err error
+	if rootPEM != "" {
+		certificate, err := tls.LoadX509KeyPair(rootPEM, rootPEM)
+		if err != nil {
+			return nil, err
+		}
+
+		confingurations := &tls.Config{
+			Certificates: []tls.Certificate{certificate},
+		}
+
+		confingurations.BuildNameToCertificate()
+		tr = &http.Transport{TLSClientConfig: confingurations}
+		client = &http.Client{Transport: tr}
+	} else {
+		tr = &http.Transport{}
+	}
+	err = http2.ConfigureTransport(tr)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
-	client := &http.Client{
+	client = &http.Client{
 		Transport: tr,
 	}
 	logger := log.New(os.Stdout, "ppush ", log.LstdFlags)
@@ -104,13 +124,6 @@ func (c *APNSClient) AndroidsRequest(header AndroidHeader, payload AndroidAPN) (
 	if err != nil {
 		return nil, err
 	}
-	/*hdr := make(map[string]string, 6)
-	hdr["authorization"] = header.Authorization
-	hdr["Content-Type"] = "application/json"*/
 	req.Header = header.Map()
-	/*for k := range hdr {
-		req.Header.Add(k, string(hdr[k]))
-		fmt.Printf("key[%s] value[%s]\n", k, hdr[k])
-	}*/
 	return req, nil
 }

@@ -51,6 +51,13 @@ func InitIosAPN(privateKeyPath string, teamId string, keyId string, topic string
 	return nil
 }
 
+func InitIosPEMAPN(privateKeyPath string, topic string) error {
+	iosModal.privateKeyPath = privateKeyPath
+	iosModal.topic = topic
+	deviceType = 3
+	return nil
+}
+
 func InitAndroidAPN(FCMKey string) {
 	androidModal.FCMToken = FCMKey
 	deviceType = 2
@@ -58,7 +65,7 @@ func InitAndroidAPN(FCMKey string) {
 
 func SendAndroid(androidNotificationModal models.AndroidAPN) ([]AndroidResponse, error) {
 	if deviceType != 2 {
-		return nil, errors.New("Please initialize Android Package");
+		return nil, errors.New("Please initialize Android Package")
 	}
 	var req *http.Request
 	var res *http.Response
@@ -79,12 +86,20 @@ func SendAndroid(androidNotificationModal models.AndroidAPN) ([]AndroidResponse,
 }
 
 func SendIOS(deviceIds []string, iosNotificationModal models.IOSAPS) ([]Response, error) {
-	if deviceType != 1 {
-		return nil, errors.New("Please initialize ios private keys");
+	if deviceType != 1 && deviceType != 3 {
+		return nil, errors.New("Please initialize ios private keys")
 	}
 	var req *http.Request
 	var res *http.Response
-	apnClient, err := models.NewClient(true)
+	var err error
+	var apnClient *models.APNSClient
+	if deviceType == 1 {
+		apnClient, err = models.NewClient(true, "", "")
+	} else if deviceType == 3 {
+		apnClient, err = models.NewClient(true, iosModal.privateKeyPath, "gateway.push.apple.com:2195")
+	} else {
+		return nil, errors.New("Please initialize ios private keys")
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +125,7 @@ func executeRequest(client *models.APNSClient, req *http.Request, res *http.Resp
 	res, err := client.HTTPClient.Do(req)
 	if err != nil {
 		fmt.Println(err)
-		error <- Response{err.Error(), token, true}
+		error <- Response{token, err.Error(), true}
 		return
 	}
 	fmt.Println(res.Status)
@@ -121,15 +136,16 @@ func executeRequest(client *models.APNSClient, req *http.Request, res *http.Resp
 		var r string
 		if err := json.Unmarshal(body, &r); err != nil {
 			fmt.Println(err)
-			error <- Response{err.Error(), token, true}
+			error <- Response{token, err.Error(), true}
 			return
 		}
 		fmt.Println(r)
-		error <- Response{err.Error(), token, true}
+		error <- Response{token, err.Error(), true}
 		return
 	}
-	error <- Response{"Success", token, false}
+	error <- Response{token, "Success", false}
 }
+
 func androidExecuteRequest(client *models.APNSClient, req *http.Request, res *http.Response, token []string, error chan AndroidResponse) {
 	res, err := client.HTTPClient.Do(req)
 	if err != nil {
